@@ -85,8 +85,6 @@ def get_page_quotes() -> [Quote]:
     all_quotes = get_single_page_quotes(first_page_soup)
     num_pages = get_num_pages(first_page_soup)
 
-    # iterate
-
     for page_num in range(2, num_pages + 1):
         next_url = f"/page/{page_num}/"
         text = requests.get(BASE_URL + next_url).content
@@ -114,14 +112,16 @@ def write_to_csv(data: list[dict], filename: str, fields: list[str]) -> None:
         writer.writerows(data)
 
 
-def main(output_csv_path: str, authors_csv_path: str):
+def main(output_csv_path: str, authors_csv_path: str = None):
     all_quotes = get_page_quotes()
     quotes_data = [parse_quote(quote) for quote in all_quotes]
 
-    write_to_csv(quotes_data, output_csv_path, ["text", "author",  "biography", "tags"])
+    write_to_csv(quotes_data, output_csv_path, ["text", "author", "biography", "tags"])
     authors_data = [{"author": author, "biography": biography} for author, biography in authors_cache.items()]
-    write_to_csv(authors_data,  authors_csv_path, ["author", "biography"])
+    write_to_csv(authors_data, authors_csv_path, ["author", "biography"])
 
 
 if __name__ == "__main__":
-    main("quotes.csv", "authors.csv")
+    output_csv_path = "quotes.csv"
+    authors_csv_path = "authors.csv"
+    main(output_csv_path, authors_csv_path)
