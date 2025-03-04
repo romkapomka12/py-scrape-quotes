@@ -95,16 +95,33 @@ def get_page_quotes() -> [Quote]:
     return all_quotes
 
 
-def write_quotes_to_csv(quotes: [Quote]) -> None:
-    with open("quotes.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(QUOTES_FIELDS)
-        writer.writerows([astuple(quote) for quote in quotes])
+def parse_quote(quote: Quote) -> dict:
+    author = quote.author
+    biography = get_author_biography(author)
+
+    return {
+        "text": quote.text,
+        "author": author,
+        "biography": biography,
+        "tags": quote.tags
+    }
 
 
-def main(output_csv_path: str) -> None:
-    write_quotes_to_csv(get_page_quotes())
+def write_to_csv(data: list[dict], filename: str, fields: list[str]) -> None:
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(data)
+
+
+def main(output_csv_path: str, authors_csv_path: str):
+    all_quotes = get_page_quotes()
+    quotes_data = [parse_quote(quote) for quote in all_quotes]
+
+    write_to_csv(quotes_data, output_csv_path, ["text", "author",  "biography", "tags"])
+    authors_data = [{"author": author, "biography": biography} for author, biography in authors_cache.items()]
+    write_to_csv(authors_data,  authors_csv_path, ["author", "biography"])
 
 
 if __name__ == "__main__":
-    main("quotes.csv")
+    main("quotes.csv", "authors.csv")
