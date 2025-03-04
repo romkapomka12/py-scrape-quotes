@@ -48,12 +48,16 @@ def get_author_biography(author_name: str) -> str:
 
     normalized_name = normalized_author_name(author_name)
     author_url = f"{BASE_URL}/author/{normalized_name}/"
-    response = requests.get(author_url)
-    soup = BeautifulSoup(response.content, "html.parser")
+    try:
+        response = requests.get(author_url)
+        soup = BeautifulSoup(response.content, "html.parser")
 
-    biography = soup.select_one(".author-description").text.strip()
-    authors_cache[author_name] = biography
-    return biography
+        biography = soup.select_one(".author-description").text.strip()
+        authors_cache[author_name] = biography
+        return biography
+    except Exception as e:
+        print(f"Error retrieving biography for {author_name}: {e}")
+        return "No biography available (parsing error)"
 
 
 def get_num_pages(page_soup: Tag) -> int:
@@ -73,12 +77,12 @@ def get_num_pages(page_soup: Tag) -> int:
     return num_pages
 
 
-def get_single_page_quotes(page_soup: Tag) -> [Quote]:
+def get_single_page_quotes(page_soup: Tag) -> list[Quote]:
     quotes = page_soup.select(".quote")
     return [parse_quotes(quote) for quote in quotes]
 
 
-def get_page_quotes() -> [Quote]:
+def get_page_quotes() -> list[Quote]:
     text = requests.get(BASE_URL).content
     first_page_soup = BeautifulSoup(text, "html.parser")
 
@@ -119,9 +123,10 @@ def main(output_csv_path: str, authors_csv_path: str = None) -> None:
 
     write_to_csv(quotes_data, output_csv_path,
                  ["text", "author", "biography", "tags"])
-    authors_data = [{"author": author, "biography": biography}
-                    for author, biography in authors_cache.items()]
-    write_to_csv(authors_data, authors_csv_path, ["author", "biography"])
+    if authors_csv_path:
+        authors_data = [{"author": author, "biography": biography}
+                        for author, biography in authors_cache.items()]
+        write_to_csv(authors_data, authors_csv_path, ["author", "biography"])
 
 
 if __name__ == "__main__":
