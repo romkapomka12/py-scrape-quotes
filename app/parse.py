@@ -5,6 +5,8 @@ import requests
 
 BASE_URL = 'https://quotes.toscrape.com/'
 
+authors_cache = {}
+
 
 @dataclass
 class Quote:
@@ -12,6 +14,15 @@ class Quote:
     author: str
     tags: list[str]
 
+
+REPLACEMENTS = [
+    (" ", "-"),
+    (". ", "-"),
+    (".", "-"),
+    (" .", "-"),
+    ("'", ""),
+    ("é", "e"),
+]
 
 QUOTES_FIELDS = [field.name for field in fields(Quote)]
 
@@ -22,6 +33,26 @@ def parse_quotes(quote: Tag) -> Quote:
         author=quote.select_one(".author").text,
         tags=[tag.text for tag in quote.select(".tag")]
     )
+
+
+def normalized_author_name(author_name):
+    for old, new in REPLACEMENTS:
+        author_name = author_name.replace(old, new).replace("--", "-").strip("-")
+    return author_name
+
+
+def get_author_biography(author_name: str) -> str:
+    if author_name in authors_cache:
+        return authors_cache[author_name]
+
+    normalized_name = normalized_author_name(author_name)
+    author_url = f"{BASE_URL}/author/{normalized_name}/"
+    response = requests.get(author_url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    biography = soup.select_one(".author-description").text.strip()
+    authors_cache[author_name] = biography
+    return biography
 
 
 def get_num_pages(page_soup: Tag) -> int:
